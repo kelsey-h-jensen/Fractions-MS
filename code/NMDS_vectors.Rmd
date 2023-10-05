@@ -1,0 +1,195 @@
+---
+title: "20200311_NMDS_vectors"
+author: "Kelsey H Jensen"
+date: "3/11/2020"
+output: html_document
+---
+
+```{r}
+library(vegan)
+cmpds <- read.table("../data/cmpds_nmds.csv",header=T, sep=",")
+cmpds$ring <- as.factor(cmpds$ring)
+cmpds$treatment <- as.factor(cmpds$treatment)
+cmpds$plant <- as.factor(cmpds$plant)
+
+plantord <- read.table("plantord.csv", header=T, sep=",")
+fraction_vectors <- read.table("cmpd_vectors.csv",header=T, sep=",")
+cmpds_apis  <-read.table("class_vectors.csv",header=T, sep=",")
+class_vectors <- read.table("class_vectors.csv", header=T,sep=",")
+```
+
+
+```{r}
+#NMDS of compounds with classes as vectors
+nmds_plantc <- metaMDS(cmpds[,c(-1,-2,-3,-4)])
+#checks on NMDS
+stressplot(nmds_plantc)
+goodness(nmds_plantc)
+plot(nmds_plantc)
+#plot NMDS
+ordiplot(nmds_plantc, type="n")
+points(nmds_plantc, display = "sites", col = "black",pch = 21,cex=1.2)
+#with vectors by treatment
+nmds_plantc.envcts <- envfit(nmds_plantc, class_vectors[,c(-1,-2,-3,-4)], na.rm=TRUE)
+nmds_plantc.envcts
+#points by CO2
+colvec <- c("red", "green","blue","yellow","orange","purple")
+shapevec <- c(21,25)
+plot(nmds_plantc, type = "n")
+points(nmds_plantc, display = "sites", col = "black",
+       pch = shapevec[cmpds$treatment],cex=1.2, bg = colvec[cmpds$plant])
+legend(-1.7,-.2, legend=levels(cmpds$plant), col=colvec, pch=21,
+       pt.bg=colvec, cex=1)
+legend(-1.7,.7, legend=levels(cmpds$treatment), pch=shapevec, cex=1)
+plot(nmds_plantc.envcts, p.max=0.05)
+```
+
+
+```{r}
+## NMDS of classes with compounds as vectors
+# Removing first 4 columns of ID
+nmds_classes <- metaMDS(class_vectors[,c(-1,-2,-3,-4)])
+#checks on NMDS
+stressplot(nmds_classes)
+goodness(nmds_classes)
+plot(nmds_classes)
+
+#plot NMDS
+ordiplot(nmds_classes, type="n")
+points(nmds_classes, display = "sites", col = "black",pch = 21,cex=1.2)
+#with vectors by treatment
+nmds_classes.envcts <- envfit(nmds_classes, cmpds[,c(-1,-2,-3)], na.rm=TRUE)
+nmds_classes.envcts
+#color by plant, shape by treatment
+colvec <- c("red", "green","blue","yellow","orange","purple")
+shapevec <- c(21,25)
+plot(nmds_classes, type = "n")
+points(nmds_classes, display = "sites", col = "black",
+       pch = shapevec[cmpds$treatment],cex=1.2, bg = colvec[cmpds$plant])
+legend(-1.7,-.2, legend=levels(cmpds$plant), col=colvec, pch=21,
+       pt.bg=colvec, cex=1)
+legend(-1.7,.7, legend=levels(cmpds$treatment), pch=shapevec, cex=1)
+plot(nmds_classes.envcts, p.max=0.05)
+# Total chaos!!! Palmitic acid is driving the lipid result, obviously
+
+```
+
+
+```{r}
+## NMDS of classes with fractions as vectors 
+# Removing first 4 columns of ID
+nmds_classes <- metaMDS(class_vectors[,c(-1,-2,-3,-4)])
+#checks on NMDS
+stressplot(nmds_classes)
+goodness(nmds_classes)
+plot(nmds_classes)
+
+#plot NMDS
+ordiplot(nmds_classes, type="n")
+points(nmds_classes, display = "sites", col = "black",pch = 21,cex=1.2)
+#with vectors by treatment
+nmds_fractions.envcts <- envfit(nmds_classes, fraction_vectors[,c(-1,-2,-3,-4)], na.rm=TRUE)
+nmds_fractions.envcts
+#color by plant, shape by treatment
+colvec <- c("red", "green","blue","yellow","orange","purple")
+shapevec <- c(21,25)
+plot(nmds_classes, type = "n")
+points(nmds_classes, display = "sites", col = "black",
+       pch = shapevec[cmpds$treatment],cex=1.2, bg = colvec[cmpds$plant])
+legend(-1.7,-.2, legend=levels(cmpds$plant), col=colvec, pch=21,
+       pt.bg=colvec, cex=1)
+legend(-1.7,.7, legend=levels(cmpds$treatment), pch=shapevec, cex=1)
+plot(nmds_fractions.envcts, p.max=1)
+```
+
+
+```{r}
+#NMDS of compounds with fractions as vectors
+nmds_cmpds <- metaMDS(cmpds[,c(-1,-2,-3,-4)])
+#checks on NMDS
+stressplot(nmds_cmpds)
+goodness(nmds_cmpds)
+plot(nmds_cmpds)
+#plot NMDS
+ordiplot(nmds_cmpds, type="n")
+points(nmds_cmpds, display = "sites", col = "black",pch = 21,cex=1.2)
+#with vectors by treatment
+nmds_cmpds.envcts <- envfit(nmds_cmpds, fraction_vectors[,c(-1,-2,-3,-4)], na.rm=TRUE)
+nmds_cmpds.envcts
+#points by CO2
+colvec <- c("red", "green","blue","yellow","orange","purple")
+shapevec <- c(21,25)
+plot(nmds_cmpds, type = "n")
+points(nmds_cmpds, display = "sites", col = "black",
+       pch = shapevec[cmpds$treatment],cex=1.2, bg = colvec[cmpds$plant])
+legend(-1.7,-.2, legend=levels(cmpds$plant), col=colvec, pch=21,
+       pt.bg=colvec, cex=1)
+legend(-1.7,.8, legend=levels(cmpds$treatment), pch=shapevec, cex=1)
+plot(nmds_cmpds.envcts, p.max=1)
+```
+
+NMDS of just increasing or decreasing compounds 
+```{r}
+#Increasing cover types only 
+cmpds.inc <- read.table("nmds_compounds_increasing.csv",header=T, sep=",")
+class.inc <- read.table("class_vectors_inc.csv",header=T, sep=",")
+fractions.inc <- read.table("cmpd_vectors_inc.csv",header=T, sep=",")
+
+nmds_inc <- metaMDS(cmpds.inc[,c(-1,-2,-3)])
+#checks on NMDS
+stressplot(nmds_cmpds)
+goodness(nmds_cmpds)
+plot(nmds_cmpds)
+
+#plot NMDS
+ordiplot(nmds_inc, type="n")
+points(nmds_inc, display = "sites", col = "black",pch = 21,cex=1.2)
+#with vectors by treatment
+nmds_inc.envcts <- envfit(nmds_cmpds, class.inc[,c(-1,-2,-3,-4)], na.rm=TRUE)
+nmds_inc.envcts
+
+#points by CO2
+colvec <- c("red", "green","blue")
+shapevec <- c(21,25)
+plot(nmds_inc, type = "n")
+points(nmds_inc, display = "sites", col = "black",
+       pch = shapevec[cmpds.inc$treatment],cex=1.2, bg = colvec[cmpds.inc$plant])
+legend(-1.7,-.2, legend=levels(cmpds.inc$plant), col=colvec, pch=21,
+       pt.bg=colvec, cex=1)
+legend(-1.7,.8, legend=levels(cmpds.inc$treatment), pch=shapevec, cex=1)
+plot(nmds_inc.envcts, p.max=1)
+```
+```{r}
+# Decreasing only
+#Increasing cover types only 
+cmpds.dec <- read.table("nmds_compounds_decreasing.csv",header=T, sep=",")
+class.dec <- read.table("class_vectors_dec.csv",header=T, sep=",")
+fractions.dec <- read.table("cmpd_vectors_dec.csv",header=T, sep=",")
+
+nmds_dec <- metaMDS(cmpds.dec[,c(-1,-2,-3,-4)])
+#checks on NMDS
+stressplot(nmds_cmpds)
+goodness(nmds_cmpds)
+plot(nmds_cmpds)
+
+#plot NMDS
+ordiplot(nmds_dec, type="n")
+points(nmds_dec, display = "sites", col = "black",pch = 21,cex=1.2)
+#with vectors by treatment
+nmds_dec.envcts <- envfit(nmds_dec, class.dec[,c(-1,-2,-3,-4)], na.rm=TRUE)
+nmds_dec.envcts
+
+#points by CO2
+colvec <- c("yellow","orange","purple")
+shapevec <- c(21,25)
+plot(nmds_dec, type = "n")
+points(nmds_dec, display = "sites", col = "black",
+       pch = shapevec[cmpds.dec$treatment],cex=1.2, bg = colvec[cmpds.dec$plant])
+legend(-1.7,-.2, legend=levels(cmpds.inc$plant), col=colvec, pch=21,
+       pt.bg=colvec, cex=1)
+legend(-1.7,.8, legend=levels(cmpds.dec$treatment), pch=shapevec, cex=1)
+plot(nmds_dec.envcts, p.max=1)
+
+```
+
+

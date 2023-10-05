@@ -1,0 +1,173 @@
+---
+title: "NMDS compound classes"
+author: "Kelsey H Jensen"
+date: "3/9/2020"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("vegan")
+library(tidyverse)
+library(vegan)
+library(ggplot2)
+```
+
+```{r, echo=T, results='hide'}
+data.cmpds <- read.csv("../data/20200309_pygcms_outrm.csv", header=T)
+cmpds <- data.cmpds %>% filter(grepl("INSP|LATR", plant))
+cmpds$ring <- as.factor(cmpds$ring)
+cmpds$treatment <- as.factor(cmpds$treatment)
+cmpds$plant <- as.factor(cmpds$plant)
+
+vegdist(cmpds[,-c(1:5)], method="bray", binary=TRUE)
+
+#NMS using Bray distance metric; zerodist = "add" will put a small value on trees with
+#no dissimilarity (i.e., the same composition)
+X <- metaMDS(cmpds[,-c(1:5)], distance='bray', k=2, trymax=100, pc=FALSE, zerodist="add")
+X <- metaMDS(cmpds[,-c(1:5)], distance='bray', k=2, trymax=100, pc=FALSE)
+```
+
+```{r}
+X$stress
+```
+ 
+Colored by plant, shapes by treatment
+```{r}
+NMDS = data.frame(MDS1 = X$points[,1], MDS2 = X$points[,2],group=cmpds$plant)
+group=cmpds$plant
+NMDS.mean=aggregate(NMDS[,1:2],list(group=group),mean)
+
+veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
+{
+  theta <- (0:npoints) * 2 * pi/npoints
+  Circle <- cbind(cos(theta), sin(theta))
+  t(center + scale * t(Circle %*% chol(cov)))
+}
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+          veganCovEllipse(cov.wt(cbind(MDS1,MDS2),wt=rep(1/length(MDS1),length(MDS1)))$cov,center=c(mean(MDS1),mean(MDS2)))))
+          ,group=g))
+}
+
+# colours()
+#sets the background to be white and the print to be font size 14
+theme_set(theme_bw(14))
+
+d<-ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = cmpds$plant, shape=cmpds$treatment))
+d
+
+e<-ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = cmpds$plant, shape=cmpds$treatment))+
+  geom_path(data= df_ell, aes(x=MDS1, y=MDS2, color= group), size=1, linetype=2) 
+e
+
+```
+
+
+```{r, eval=FALSE}
+
+#how to add points to a plot in your own color and shape
+plot(X, display=c('sites'),choices=c(1,2), type='none')
+points(X$points[cmpds$treatment=='B',1], X$points[cmpds$treatment=='B',2], pch=22,bg='black')
+#text(locator(1), "Beach", adj=0)
+points(X$points[cmpds$treatment=='S',1], X$points[cmpds$treatment=='S',2], pch=22,bg='grey75')
+#text(locator(1), "Street", adj=0)
+
+ordiellipse(X, cmpds$plant, display = "sites", kind = "sd", label = T)
+```
+
+```{r, eval=FALSE}
+# Running a Monte-Carlo test for NMDS
+# Function for randomizing a matrix by Jari Oksanen
+#  'r00' gives complete randomization, 'r0' does rows, 'c0' does columns
+A<- cmpds[,-c(1:6)]
+A<-cmpds
+
+Matrix.random <- function(x, method=c("r00", "r0", "c0")){
+  x <- as.matrix(x)
+  dm <- dim(x)
+  method <- match.arg(method)
+  x <- switch(method, r00 = structure(sample(x), dim=dm), r0 = t(apply(x, 1, sample)), c0 = apply(x, 2,sample))
+  x
+}
+A.1<-Matrix.random (A, method="r0")
+dim(A.1)
+
+# Running metaMDS through multiple randomizations
+MC.NMDS <- function(A){
+  stor.stress <- c()
+  for(i in 1:1000){
+    Z <- Matrix.random(A)
+    K <- metaMDS(Z, distance='bray', k=2, trymax=20)
+    stor.stress <- c(stor.stress, K$stress)
+  }
+  mu <- mean(stor.stress)
+  sdv <- sd(stor.stress)
+  print(paste('mean stress = ', mu))
+  print(paste('standard deviation of stress = ', sdv))
+  save(stor.stress, file='Stressed.RData')
+}
+```
+
+Decreasing cover types
+```{r}
+DATA <- read.csv("20200310_pygcms_dec.csv",header=T)
+
+DATA$ring <- as.factor(DATA$ring)
+names(DATA)
+str(DATA)
+#just to check matrix
+# Change to reflect the number of factors at the beginning of the data set
+
+vegdist(DATA[,-c(1:5)], method="bray", binary=TRUE)
+#NMS using Bray distance metric; zerodist = "add" will put a small value on trees with
+#no dissimilarity (i.e., the same composition)
+X <- metaMDS(DATA[,-c(1:5)], distance='bray', k=2, trymax=100, pc=FALSE, zerodist="add")
+X <- metaMDS(DATA[,-c(1:5)], distance='bray', k=2, trymax=100, pc=FALSE)
+
+X$stress
+
+#Adding ellipses to NMS plot
+NMDS = data.frame(MDS1 = X$points[,1], MDS2 = X$points[,2],group=DATA$treatment)
+group=DATA$treatment
+NMDS.mean=aggregate(NMDS[,1:2],list(group=group),mean)
+
+veganCovEllipse<-function (cov, center = c(0, 0), scale = 1, npoints = 100) 
+{
+  theta <- (0:npoints) * 2 * pi/npoints
+  Circle <- cbind(cos(theta), sin(theta))
+  t(center + scale * t(Circle %*% chol(cov)))
+}
+
+df_ell <- data.frame()
+for(g in levels(NMDS$group)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$group==g,],
+          veganCovEllipse(cov.wt(cbind(MDS1,MDS2),wt=rep(1/length(MDS1),length(MDS1)))$cov,center=c(mean(MDS1),mean(MDS2)))))
+          ,group=g))
+}
+
+# colours()
+#sets the background to be white and the print to be font size 14
+theme_set(theme_bw(14))
+
+d<-ggplot(data = NMDS, aes(MDS1, MDS2)) + geom_point(aes(color = group, shape=group))+  
+  geom_path(data=df_ell, aes(x=MDS1, y=MDS2,color=group), size=1, linetype=2) 
+d
+
+#how to add points to a plot in your own color and shape
+plot(X, display=c('sites'),choices=c(1,2), type='none')
+points(X$points[DATA$treatment=='B',1], X$points[DATA$treatment=='B',2], pch=22,bg='black')
+text(locator(1), "Beach", adj=0)
+points(X$points[DATA$Face=='S',1], X$points[DATA$Face=='S',2], pch=22,bg='grey75')
+text(locator(1), "Street", adj=0)
+
+ordiellipse(X, DATA$Cover, display = "sites", kind = "sd", label = T)
+```
+
+Increasing cover types
+```{r}
+
+```
+

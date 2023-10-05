@@ -1,0 +1,87 @@
+---
+title: "20200401_pyGCMS_ecologialdata"
+author: "Kelsey H Jensen"
+date: "4/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Shannon Diversity
+```{r Diversity, echo=FALSE}
+library(vegan)
+
+cmpds <- read.csv("../data/20200401_lipid_diversity.csv", header=T)
+cmpds$sample <- as.factor(cmpds$sample)
+cmpds$ring <- as.factor(cmpds$ring)
+
+ExperBioMass <- cmpds %>% 
+  filter( grepl("INSP|LATR", plant)) %>% 
+  filter( treatment == "ambient") %>% 
+  select(-sample, -treatment, -ring, -plant)
+
+ExperTrtInfo <- cmpds %>% 
+  filter( grepl("INSP|LATR", plant)) %>% 
+  filter( treatment == "ambient") %>% 
+  select(sample, treatment, ring, plant)
+
+## Shannon
+d<- diversity(ExperBioMass, index="shannon")
+H <-  diversity(ExperBioMass)
+d
+
+diversity <- data.frame(d)
+
+ecology <- cbind(ExperTrtInfo,diversity)
+
+t.test(d~plant, data= ecology)
+
+lmer1 <- lmer(d~(treatment*plant) + (1|ring), data=ecology)
+summary(lmer1)
+anova(lmer1) 
+plot(predict(lmer1), residuals(lmer1)) 
+qqnorm(residuals(lmer1)); qqline(residuals(lmer1))
+hist(residuals(lmer1)) # not ok
+
+means.shannon <- summary(emmeans(lmer1, ~treatment*plant, type="response"))
+paircomp.shannon <- summary(emmeans(lmer1, pairwise~treatment|plant)$contrasts)
+
+
+## Simpson 
+# Something is wrong with this measure, lot of numbers look the same
+s <- diversity(ExperBioMass, index="simpson")
+s
+
+simpson <- data.frame(s)
+
+ecology <- cbind(ecology,simpson)
+
+lmer2 <- lmer(s~(treatment*plant)+ (1|ring), data=ecology)
+summary(lmer2)
+anova(lmer2) 
+plot(predict(lmer2), residuals(lmer2)) 
+qqnorm(residuals(lmer2)); qqline(residuals(lmer2)) #skewed at the top
+hist(residuals(lmer2)) #his looks ok, qq looks bad
+
+means.simpson <- summary(emmeans(lmer2, ~treatment*plant, type="response"))
+paircomp.simpson <- summary(emmeans(lmer2, pairwise~treatment|plant)$contrasts)
+
+## Evenness
+specnumber(ExperBioMass)
+e <- H/log(specnumber(ExperBioMass))
+evenness<- data.frame(e)
+ecology <- cbind(ecology,evenness)
+
+
+lmer3 <- lmer(e~(treatment*plant)+ (1|ring), data=ecology)
+summary(lmer3)
+anova(lmer3) 
+plot(predict(lmer3), residuals(lmer3)) 
+qqnorm(residuals(lmer3)); qqline(residuals(lmer3)) #skewed at the top
+hist(residuals(lmer3))
+
+
+
+```
